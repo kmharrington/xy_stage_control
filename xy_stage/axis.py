@@ -1,5 +1,4 @@
 import RPi.GPIO as GPIO
-from threading import Thread
 import time
 
 class Axis:
@@ -34,11 +33,19 @@ class Axis:
         return self.step_position / self.steps_per_cm
 
     @position.setter
-    def position(self, value)
+    def position(self, value):
         if self.keep_moving:
             raise ValueError("Cannot update position while moving")
         self.step_position = value*steps_per_cm
-    
+
+    @property
+    def limits(self):
+        '''
+        Returns: (home limit, far side limit)
+        '''
+        self.set_limits()
+        return self.lim_cw, self.lim_ccw
+        
     def setup_pins(self):
         GPIO.setmode(GPIO.BCM)
 
@@ -109,6 +116,8 @@ class Axis:
         ## direction = False is toward the CCW limit
         ## direction = True is toward the CW limit
         steps = int(round(steps))
+        self.keep_moving = True
+        
         if dir:
             increment = -1
         else:
@@ -116,7 +125,6 @@ class Axis:
         GPIO.output( self.ena, GPIO.LOW)
         GPIO.output(self.dir, dir)
         
-        self.keep_moving = True
         time.sleep(0.25)
 
         while steps > 0 and self.keep_moving:
@@ -149,6 +157,10 @@ class Axis:
         GPIO.output(self.ena, GPIO.HIGH)
         self.keep_moving = False
         return True
+    
+    def stop(self):
+        GPIO.cleanup()
+
 
 class CombinedAxis(Axis):
     """
@@ -174,6 +186,8 @@ class CombinedAxis(Axis):
         return self.lim_ccw or self.lim_cw
 
 if __name__ == '__main__':
+    pass
+    '''
     STEP_PER_CM = 1574.80316
     
     #### BCM PIN NUMBERS
@@ -189,14 +203,16 @@ if __name__ == '__main__':
             'eot_ccw':19, 'eot_cw':26},
             steps_per_cm = STEP_PER_CM)
 
-    #x = Thread(target=x_axis.move_to_cm, args=(-5, 1, False))
-    x = Thread(target=x_axis.home, args=() )
+    x = Thread(target=x_axis.move_to_cm, args=(10, 1, False))
+    #x = Thread(target=x_axis.home, args=() )
     print('starting')
     x.start()
     time.sleep(0.01)
     while x_axis.keep_moving:
         time.sleep(1)
         print(x_axis.position)
+        if x_axis.position > 4:
+            x_axis.position=0
     x.join()
     print('all done')
     #x_axis.move_step(False, 5000, 0.0001)
@@ -209,3 +225,4 @@ if __name__ == '__main__':
     #time.sleep(30)
 
     GPIO.cleanup()
+    '''
