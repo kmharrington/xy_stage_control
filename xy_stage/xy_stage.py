@@ -32,6 +32,10 @@ class XY_Stage(object):
     def limits(self):
         return self.x_axis.limits, self.y_axis.limits
 
+    @property
+    def homed(self):
+        return self.x_axis.homed and self.y_axis.homed
+
     def home(self, max_dist=150):
         '''
         Home both axes. Should probably add some failure checking
