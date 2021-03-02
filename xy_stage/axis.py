@@ -1,0 +1,211 @@
+import RPi.GPIO as GPIO
+from threading import Thread
+import time
+
+class Axis:
+    """
+    Base Class for one of the XY gantry axes
+
+    All move commands are written to be called in threads
+    
+    self.position and/or self.step position can safely be queried
+        while the axis is moving. 
+    """
+    def __init__(self, name, pin_list, steps_per_cm):
+        self.name = name
+        self.ena = pin_list['ena']
+        self.pul = pin_list['pul']
+        self.dir = pin_list['dir']
+
+        self.eot_ccw = pin_list['eot_ccw']
+        self.eot_cw = pin_list['eot_cw']
+
+        self.setup_pins()
+
+        self.keep_moving = False
+        self.step_position = 0
+        
+        self.steps_per_cm = steps_per_cm
+        self.max_vel = 1.27 ## cm / s
+        self.homed = False
+
+    @property
+    def position(self):
+        return self.step_position / self.steps_per_cm
+
+    @position.setter
+    def position(self, value)
+        if self.keep_moving:
+            raise ValueError("Cannot update position while moving")
+        self.step_position = value*steps_per_cm
+    
+    def setup_pins(self):
+        GPIO.setmode(GPIO.BCM)
+
+        for pin in [self.ena, self.pul, self.dir]:
+            GPIO.setup(pin, GPIO.OUT)
+            GPIO.output(pin, GPIO.HIGH)
+        for pin in [self.eot_ccw, self.eot_cw]:
+            GPIO.setup(pin, GPIO.IN)
+
+    def set_limits(self):
+        ### pins go low when they are engaged
+        self.lim_ccw =  GPIO.input(self.eot_ccw) == GPIO.LOW 
+        self.lim_cw =  GPIO.input(self.eot_cw) == GPIO.LOW 
+        return self.lim_ccw or self.lim_cw
+
+    def home(self, max_dist=150):
+        '''
+        Move axis at 1 cm/s toward the home limit.
+        '''    
+        while not self.homed:
+            self.move_cm(True, max_dist, velocity=1)
+            
+
+    def move_cm(self, dir, distance, velocity=None):
+        '''
+        Axis Moves the commanded number of cm. Converts to steps 
+            and calls the move_step function
+
+        Args:
+            dir -- True goes toward home (the motors)
+            distance -- number of cm to move
+            velocity -- how quickly to move
+        '''
+        steps = distance*self.steps_per_cm
+        if velocity is None:
+            velocity = self.max_vel
+
+        if velocity > self.max_vel:
+            print('Requested Velocity too high, setting to {} cm/s'.format(self.max_vel))
+            velocity = self.max_vel
+
+        wait = 1.0/(2*velocity*self.steps_per_cm)
+        return self.move_step(dir, steps, wait)
+
+    def move_to_cm(self, new_position, velocity=None, require_home=True):
+        '''
+        Move Axis to the requested position. 
+        
+        Args:
+            new_position -- the position you want to move to
+            velocity -- how fast to move (cm/s)
+            require_home -- if true, requires the axis position to be calibrated
+                defaults to true to prevent mistakes
+        '''
+        if not self.homed:
+            if require_home:
+                print('ERROR -- Axis Position Not Calibrated')
+                return False
+            print('WARNING -- Axis Position Not calibrated')
+        distance = new_position - self.position         
+        if distance < 0:
+            return self.move_cm( True, abs(distance), velocity)
+        
+        return self.move_cm(False, abs(distance), velocity)
+
+        
+    def move_step(self, dir, steps=100, wait=0.005):
+        ## direction = False is toward the CCW limit
+        ## direction = True is toward the CW limit
+        steps = int(round(steps))
+        if dir:
+            increment = -1
+        else:
+            increment = 1
+        GPIO.output( self.ena, GPIO.LOW)
+        GPIO.output(self.dir, dir)
+        
+        self.keep_moving = True
+        time.sleep(0.25)
+
+        while steps > 0 and self.keep_moving:
+       
+            if self.set_limits():
+                if (not dir) and self.lim_ccw:
+                    print('Hit CCW limti with {} steps left'.format(steps))
+                    self.keep_moving = False
+                    break
+                elif dir and self.lim_cw:
+                    ### true goes to home
+                    self.step_position = 0
+                    self.homed = True
+                    print('Hit CW limit with {} steps left'.format(steps))
+                    self.keep_moving = False
+                    break
+                print('LIMIT!')
+                print('CCW: ', self.lim_ccw, 'CW:', self.lim_cw)
+            
+            GPIO.output(self.pul, GPIO.HIGH)
+            time.sleep(wait)
+            GPIO.output(self.pul, GPIO.LOW)
+            time.sleep(wait)
+            self.step_position += increment
+            steps -= 1
+
+        if not self.keep_moving:
+            print('I think I hit a limit with {} steps left'.format(steps))
+
+        GPIO.output(self.ena, GPIO.HIGH)
+        self.keep_moving = False
+        return True
+
+class CombinedAxis(Axis):
+    """
+    Two axes where the control outputs are electrically connected
+
+    This assumes there's two limit switches per axes so there's two
+    limits on each side.
+    """
+    def setup_pins(self):
+        GPIO.setmode(GPIO.BCM)
+
+        for pin in [self.ena, self.pul, self.dir]:
+            GPIO.setup(pin, GPIO.OUT)
+            GPIO.output(pin, GPIO.HIGH)
+        for pins in [self.eot_ccw, self.eot_cw]:
+            for pin in pins:
+                GPIO.setup(pin, GPIO.IN)
+
+    def set_limits(self):
+        ### pins go low when they are engaged
+        self.lim_ccw = (GPIO.input(self.eot_ccw[0]) == GPIO.LOW) or (GPIO.input(self.eot_ccw[1]) == GPIO.LOW)  
+        self.lim_cw =  (GPIO.input(self.eot_cw[0]) == GPIO.LOW) or (GPIO.input(self.eot_cw[1]) == GPIO.LOW)  
+        return self.lim_ccw or self.lim_cw
+
+if __name__ == '__main__':
+    STEP_PER_CM = 1574.80316
+    
+    #### BCM PIN NUMBERS
+    x_axis = CombinedAxis('X', 
+            pin_list={
+            'ena':2, 'pul':4, 'dir':3,
+            'eot_ccw':[17,23], 'eot_cw':[27,24]}, 
+             steps_per_cm = STEP_PER_CM)
+   
+    y_axis = Axis('Y', 
+            pin_list={
+            'ena':16, 'pul':21, 'dir':20,
+            'eot_ccw':19, 'eot_cw':26},
+            steps_per_cm = STEP_PER_CM)
+
+    #x = Thread(target=x_axis.move_to_cm, args=(-5, 1, False))
+    x = Thread(target=x_axis.home, args=() )
+    print('starting')
+    x.start()
+    time.sleep(0.01)
+    while x_axis.keep_moving:
+        time.sleep(1)
+        print(x_axis.position)
+    x.join()
+    print('all done')
+    #x_axis.move_step(False, 5000, 0.0001)
+    
+    #time.sleep(0.1)
+    
+    #test.move(True,2000, 0.0001)
+    
+    #test.print_limits(nread=40, wait=0.25) 
+    #time.sleep(30)
+
+    GPIO.cleanup()
