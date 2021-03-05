@@ -19,6 +19,7 @@ class XY_Stage(object):
         if ysteps_per_cm is None:
             ysteps_per_cm = xsteps_per_cm
         self.y_axis = Axis('Y', ypin_list, ysteps_per_cm)
+        self.mv_thrd = None
         
     @property
     def position(self):
@@ -49,26 +50,40 @@ class XY_Stage(object):
         Args:
             distance -- number of cm to move
                      -- negative numbers go toward home
-            velocity, how quickly to move
+            velocity, how quickly to move, in cm/s
+                     -- (Speed really, always positive) 
         '''
+        if self.moving:
+            raise ValueError("Cannot start new move before previous move is finished")
+
         if distance > 0:
             dir = False
         else:
             dir = True
-        self.x_axis.move_cm(dir, abs(distance), velocity)
+
+        self.mv_thrd = Thread(target=self.x_axis.move_cm, 
+                args=(dir, abs(distance), abs(velocity)) )
+        self.mv_thrd.start()
 
     def move_y_cm(self, distance, velocity=None):
         '''
         Args:
             distance -- number of cm to move
                      -- negative numbers go toward home
-            velocity, how quickly to move
+            velocity, how quickly to move, in cm/s
+                    -- (Speed really, always positive)
         '''
+        if self.moving:
+            raise Exception("Cannot start new move before previous move is finished")
+        
         if distance > 0:
             dir = False
         else:
             dir = True
-        self.y_axis.move_cm(dir, abs(distance), velocity)
+        
+        self.mv_thrd = Thread(target=self.y_axis.move_cm, 
+                args=(dir, abs(distance), abs(velocity)) )
+        self.mv_thrd.start()
 
     def move_to_cm(self, new_position, velocity=None, require_home=True):
         assert len(new_position) == 2
@@ -80,10 +95,11 @@ class XY_Stage(object):
         self.y_axis.move_to_cm( new_position[1], velocity[1], require_home)
 
     def stop(self):
-        ## probably doesn't need to be run twice. 
-        ## the x-axis can break the y-axis...
         self.x_axis.stop()
         self.y_axis.stop()
+        
+    def cleanup():
+        self.x_axis.cleanup()
 
 if __name__ == '__main__':
     STEP_PER_CM = 1574.80316
@@ -104,10 +120,28 @@ if __name__ == '__main__':
     }
 
     xy_stage = XY_Stage(xpins, ypins, STEP_PER_CM)
+    print(xy_stage.limits)
 
-    xy_stage.move_x_cm( 10 )
-    time.sleep(2)
-    xy_stage.move_y_cm( 20 )
-    time.sleep(1)
-    xy_stage.move_x_cm( -5)
-    xy_stage.stop()
+    x = Thread(target=xy_stage.move_y_cm, args=(-6,.5))
+    x.start()
+    time.sleep(0.01)
+    while xy_stage.moving:
+        time.sleep(0.5)
+        print(xy_stage.position)
+    x.join()
+    
+    x = Thread(target=xy_stage.move_y_cm, args=(7,.5))
+    x.start()
+    time.sleep(0.01)
+    while xy_stage.moving:
+        time.sleep(0.5)
+        print(xy_stage.position)
+    x.join()
+    
+    #xy_stage.move_x_cm( 10 )
+    #time.sleep(2)
+    #xy_stage.move_y_cm( 20 )
+    #time.sleep(1)
+    #xy_stage.move_x_cm( -5)
+    
+    xy_stage.cleanup()

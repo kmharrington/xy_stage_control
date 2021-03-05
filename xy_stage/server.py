@@ -2,6 +2,8 @@
 
 from xy_stage import XY_Stage
 import socket
+import json
+
 
 class XY_Server(object):
     def __init__(self, host, port, xpin_list, ypin_list, steps_per_cm):
@@ -17,25 +19,38 @@ class XY_Server(object):
 
     def work(self):
         while True:
-            conn, addr = self.server.accept()
-            with conn:
-                print('Connected by ', addr)
-                while True:
-                    msg = conn.recv(1024)
-                    if not msg:
-                        break
-                    resp = self.process(msg.decode('utf-8'))
-                    conn.sendall(bytes(resp, 'utf-8'))
+            try:
+                conn, addr = self.server.accept()
+                with conn:
+                    print('Connected by ', addr)
+                    while True:
+                        msg = conn.recv(1024)
+                        if not msg:
+                            break
+                        resp = self.process(msg.decode('utf-8'))
+                        conn.sendall(bytes(resp, 'utf-8'))
+            except:
+                self.server.close()
+                raise
 
     def process(self, msg):
-        if msg == 'init':
-            try:
-                resp = self.init_stages()
-            except:
-                resp = 'Initialization Failed'
-        else:
-            resp = msg
-        return resp
+        msg = json.loads(msg)
+        print(msg)
+        try:
+            if 'property' in msg:
+                resp = {'resp': getattr(self.stages, msg['property'])}
+            elif 'function' in msg:
+                if msg['function'] == 'init':
+                    resp = {'resp':self.init_stages()}
+                else:
+                    f = getattr(self.stages, msg['function'])
+                    resp = {'resp': f(**msg['kwargs'])}
+            if resp is None:
+                resp = {'resp': None }
+        except Exception as err:
+            resp = {'error': err.args[0]}     
+        print(resp)
+        return json.dumps(resp)
 
     def init_stages(self):
         if self.stages is not None:

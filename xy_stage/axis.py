@@ -88,7 +88,8 @@ class Axis:
             velocity = self.max_vel
 
         wait = 1.0/(2*velocity*self.steps_per_cm)
-        return self.move_step(dir, steps, wait)
+        success, steps = self.move_step(dir, steps, wait)
+        return success, steps/self.steps_per_cm
 
     def move_to_cm(self, new_position, velocity=None, require_home=True):
         '''
@@ -131,7 +132,7 @@ class Axis:
        
             if self.set_limits():
                 if (not dir) and self.lim_ccw:
-                    print('Hit CCW limti with {} steps left'.format(steps))
+                    #print('Hit CCW limti with {} steps left'.format(steps))
                     self.keep_moving = False
                     break
                 elif dir and self.lim_cw:
@@ -141,8 +142,8 @@ class Axis:
                     print('Hit CW limit with {} steps left'.format(steps))
                     self.keep_moving = False
                     break
-                print('LIMIT!')
-                print('CCW: ', self.lim_ccw, 'CW:', self.lim_cw)
+                #print('LIMIT!')
+                #print('CCW: ', self.lim_ccw, 'CW:', self.lim_cw)
             
             GPIO.output(self.pul, GPIO.HIGH)
             time.sleep(wait)
@@ -151,14 +152,18 @@ class Axis:
             self.step_position += increment
             steps -= 1
 
-        if not self.keep_moving:
-            print('I think I hit a limit with {} steps left'.format(steps))
-
         GPIO.output(self.ena, GPIO.HIGH)
+        if not self.keep_moving:
+            #print('I think I hit a limit with {} steps left'.format(steps))
+            return False, steps
+
         self.keep_moving = False
-        return True
+        return True, steps
     
     def stop(self):
+        self.keep_moving = False
+    
+    def cleanup(self):
         GPIO.cleanup()
 
 
@@ -186,25 +191,32 @@ class CombinedAxis(Axis):
         return self.lim_ccw or self.lim_cw
 
 if __name__ == '__main__':
-    pass
-    '''
+    from threading import Thread
+
     STEP_PER_CM = 1574.80316
     
+    ### used when only one axis is plugged in to Xa
+    x_axis = Axis('X', 
+            pin_list={
+            'ena':2, 'pul':4, 'dir':3,
+            'eot_ccw':17, 'eot_cw':27}, 
+             steps_per_cm = STEP_PER_CM)
+    '''
     #### BCM PIN NUMBERS
     x_axis = CombinedAxis('X', 
             pin_list={
             'ena':2, 'pul':4, 'dir':3,
             'eot_ccw':[17,23], 'eot_cw':[27,24]}, 
              steps_per_cm = STEP_PER_CM)
-   
+    
     y_axis = Axis('Y', 
             pin_list={
             'ena':16, 'pul':21, 'dir':20,
             'eot_ccw':19, 'eot_cw':26},
             steps_per_cm = STEP_PER_CM)
-
-    x = Thread(target=x_axis.move_to_cm, args=(10, 1, False))
-    #x = Thread(target=x_axis.home, args=() )
+    '''
+    #x = Thread(target=x_axis.move_to_cm, args=(10, 1, False))
+    x = Thread(target=x_axis.home, args=() )
     print('starting')
     x.start()
     time.sleep(0.01)
@@ -215,6 +227,7 @@ if __name__ == '__main__':
             x_axis.position=0
     x.join()
     print('all done')
+    x_axis.stop()
     #x_axis.move_step(False, 5000, 0.0001)
     
     #time.sleep(0.1)
@@ -224,5 +237,4 @@ if __name__ == '__main__':
     #test.print_limits(nread=40, wait=0.25) 
     #time.sleep(30)
 
-    GPIO.cleanup()
-    '''
+        
