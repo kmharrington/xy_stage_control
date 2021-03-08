@@ -26,7 +26,19 @@ class XY_Stage:
             return resp['resp']
         except socket.timeout:
             return None
-        
+
+    def wait_for_response(self):
+        while True:
+            try:
+                data = self.comm.recv(1025)
+                resp = json.loads(data)
+                if 'error' in resp:
+                    raise Exception(resp['error'])
+                return resp['resp']
+            except socket.timeout:
+                #print('still waiting')
+                continue
+
     def build_text(self, func, prop=False, kwargs={}):
         if prop:
             resp = self.send({'property':func})
@@ -40,7 +52,17 @@ class XY_Stage:
     @property
     def limits(self):
         return self.build_text( 'limits', prop=True )
-        
+
+    @property
+    def position(self):
+        return self.build_text( 'position', prop=True)
+    
+    def wait(self):
+        resp = self.build_text( 'wait', kwargs={})    
+        if resp is None:
+            resp = self.wait_for_response()
+        return resp
+            
     def stop(self):
         self.build_text('stop', kwargs={})
 
