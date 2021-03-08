@@ -6,7 +6,7 @@ import json
 
 
 class XY_Server(object):
-    def __init__(self, host, port, xpin_list, ypin_list, steps_per_cm):
+    def __init__(self, HOST, PORT, xpin_list, ypin_list, steps_per_cm):
         
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((HOST, PORT))
@@ -57,7 +57,7 @@ class XY_Server(object):
             return 'Stages already Initialized'
         self.stages = XY_Stage(self.xpins, self.ypins, self.steps_per_cm)
         return 'Stages Initialized'
-        
+'''        
 if __name__ == '__main__':
     HOST = '192.168.10.15'
     PORT = 3010
@@ -81,3 +81,4 @@ if __name__ == '__main__':
 
     server = XY_Server(HOST, PORT, xpins, ypins, STEP_PER_CM)
     server.work()
+'''

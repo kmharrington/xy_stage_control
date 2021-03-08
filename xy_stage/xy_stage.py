@@ -32,7 +32,7 @@ class XY_Stage(object):
     @property
     def limits(self):
         return self.x_axis.limits, self.y_axis.limits
-
+    
     @property
     def homed(self):
         return self.x_axis.homed and self.y_axis.homed
@@ -44,6 +44,15 @@ class XY_Stage(object):
 
         self.x_axis.home(max_dist)
         self.y_axis.home(max_dist)
+
+    def wait(self):
+        if self.mv_thrd is None:
+            ## this means we aren't moving. I think
+            return True
+        else:
+            self.mv_thrd.join()
+            return True
+        return False
 
     def move_x_cm(self, distance, velocity=None):
         '''
