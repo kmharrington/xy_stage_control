@@ -1,4 +1,4 @@
-from axis import Axis, CombinedAxis
+from . import Axis, CombinedAxis
 
 import time
 from threading import Thread

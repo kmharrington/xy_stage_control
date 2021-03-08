@@ -1,6 +1,6 @@
 #!/user/bin/env python3
 
-from xy_stage import XY_Stage
+from . import XY_Stage
 import socket
 import json
 

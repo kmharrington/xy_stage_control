@@ -52,13 +52,14 @@ class XY_Agent:
     def __init__(self):
         pass    
 
-HOST = '192.168.10.15'
-PORT = 3010
+if __name__ == '__main__':
+    HOST = '192.168.10.15'
+    PORT = 3010
 
-xy_stage = XY_Stage(HOST, PORT)
-#xy_stage.send('Hello')
-xy_stage.init_stages()
-print( xy_stage.limits )
-xy_stage.move_y_cm( -10, 0.5)
-time.sleep(3)
-xy_stage.stop()
+    xy_stage = XY_Stage(HOST, PORT)
+    #xy_stage.send('Hello')
+    xy_stage.init_stages()
+    print( xy_stage.limits )
+    xy_stage.move_y_cm( -10, 0.5)
+    time.sleep(3)
+    xy_stage.stop()
