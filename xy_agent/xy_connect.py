@@ -9,11 +9,15 @@ class XY_Stage:
 
 
         self.comm = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.comm.connect((HOST, PORT))
+        self.comm.connect((ip_address, port))
         self.comm.settimeout(timeout)
 
     def send(self, message):
-        self.comm.sendall(bytes(json.dumps(message), 'utf-8'))
+        try:
+            msg = bytes(json.dumps(message), 'utf-8')
+        except:
+            msg = json.dumps(message)
+        self.comm.sendall(msg)
         try:
             data = self.comm.recv(1025)
             resp = json.loads(data)
@@ -31,11 +35,11 @@ class XY_Stage:
         return resp
 
     def init_stages(self):
-        self.build_text('init', {})
+        self.build_text('init', kwargs={})
 
     @property
     def limits(self):
-        return xy_stage.build_text( 'limits', prop=True )
+        return self.build_text( 'limits', prop=True )
         
     def stop(self):
         self.build_text('stop', kwargs={})
@@ -47,19 +51,25 @@ class XY_Stage:
     def move_y_cm( self, distance, velocity=None):
         self.build_text('move_y_cm', kwargs={'distance':distance, 
                                              'velocity':velocity})
+    @classmethod
+    def latrt_xy_stage(cls):
+        HOST = '192.168.10.15'
+        PORT = 3010
+
+        xy_stage = cls(HOST, PORT)
+        xy_stage.init_stages()
+        return xy_stage        
+
 
 class XY_Agent:
     def __init__(self):
         pass    
-
+'''
 if __name__ == '__main__':
-    HOST = '192.168.10.15'
-    PORT = 3010
-
-    xy_stage = XY_Stage(HOST, PORT)
     #xy_stage.send('Hello')
-    xy_stage.init_stages()
-    print( xy_stage.limits )
-    xy_stage.move_y_cm( -10, 0.5)
-    time.sleep(3)
-    xy_stage.stop()
+
+    #print( xy_stage.limits )
+    #xy_stage.move_y_cm( -10, 0.5)
+    #time.sleep(3)
+    #xy_stage.stop()
+'''
