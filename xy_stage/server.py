@@ -3,6 +3,8 @@
 from .xy_stage import XY_Stage
 import socket
 import json
+import logging
+import logging.handlers as handlers
 
 
 class XY_Server(object):
@@ -12,6 +14,16 @@ class XY_Server(object):
         self.server.bind((HOST, PORT))
         self.server.listen(1)
         
+        ## set up logging        
+        self.logger = logging.getLogger('xy_server')
+        self.logger.setLevel(logging.INFO)
+        handler = handlers.TimedRotatingFileHandler('/data/logs/xy_server_log.log',
+                                                    when='D', interval=1,
+                                                    backupCount=1)
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s:%(message)s' ))
+        self.logger.addHandler(handler)                                                
+
         self.xpins = xpin_list
         self.ypins = ypin_list
         self.steps_per_cm = steps_per_cm
@@ -22,7 +34,7 @@ class XY_Server(object):
             try:
                 conn, addr = self.server.accept()
                 with conn:
-                    print('Connected by ', addr)
+                    self.logger.info('Connected to {}'.format(addr))
                     while True:
                         msg = conn.recv(1024)
                         if not msg:
@@ -35,7 +47,7 @@ class XY_Server(object):
 
     def process(self, msg):
         msg = json.loads(msg)
-        print(msg)
+        self.logger.info('Received {}'.format(msg))
         try:
             if 'property' in msg:
                 resp = {'resp': getattr(self.stages, msg['property'])}
@@ -49,7 +61,7 @@ class XY_Server(object):
                 resp = {'resp': None }
         except Exception as err:
             resp = {'error': err.args[0]}     
-        print(resp)
+        self.logger.info('Returned {}'.format(resp))
         return json.dumps(resp)
 
     def init_stages(self):
