@@ -55,7 +55,14 @@ class XY_Stage:
 
     @property
     def position(self):
-        return self.build_text( 'position', prop=True)
+        return self.build_text( 'get_position', prop=False)
+    
+    @position.setter
+    def position(self, value):
+        if len(value) != 2:
+            raise ValueError("Must supply position for x and y")
+        return self.build_text( 'set_position', 
+                                kwargs={'value': value})
     
     def wait(self):
         resp = self.build_text( 'wait', kwargs={})    

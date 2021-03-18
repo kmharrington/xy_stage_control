@@ -21,9 +21,17 @@ class XY_Stage(object):
         self.y_axis = Axis('Y', ypin_list, ysteps_per_cm)
         self.mv_thrd = None
         
-    @property
-    def position(self):
+    
+    def get_position(self):
         return (self.x_axis.position, self.y_axis.position)
+    
+    def set_position(self, value):
+        if len(value) != 2:
+            raise ValueError("Must supply (x,y) to set position")
+        if self.moving:
+            raise ValueError("Cannot set position while axis is moving")
+        self.x_axis.position = value[0]
+        self.y_axis.position = value[1]
 
     @property
     def moving(self):
