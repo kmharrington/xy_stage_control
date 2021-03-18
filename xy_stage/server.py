@@ -30,6 +30,7 @@ class XY_Server(object):
         self.stages = None
 
     def work(self):
+        self.logger.info("Initialize Server")
         while True:
             try:
                 conn, addr = self.server.accept()
