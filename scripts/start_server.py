@@ -1,3 +1,4 @@
+import time
 from xy_wing.server import XY_Server
 
 HOST = '192.168.10.15'
@@ -20,6 +21,15 @@ ypins = {
         'eot_cw':26,
     }
 
-server = XY_Server(HOST, PORT, xpins, ypins, STEP_PER_CM)
-server.work()
+count = 0
+while count < 10:
+    try:
+        server = XY_Server(HOST, PORT, xpins, ypins, STEP_PER_CM)
+        break
+    except:
+        time.sleep(10)
+    else:
+        pass
 
+
+server.work()
