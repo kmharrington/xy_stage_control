@@ -36,7 +36,7 @@ class Axis:
     def position(self, value):
         if self.keep_moving:
             raise ValueError("Cannot update position while moving")
-        self.step_position = value*steps_per_cm
+        self.step_position = value*self.steps_per_cm
 
     @property
     def limits(self):
