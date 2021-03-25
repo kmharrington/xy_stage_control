@@ -27,6 +27,9 @@ class XY_Stage:
         except socket.timeout:
             return None
 
+    def close(self):
+        self.comm.close()
+
     def wait_for_response(self):
         while True:
             try:
@@ -69,7 +72,11 @@ class XY_Stage:
         if resp is None:
             resp = self.wait_for_response()
         return resp
-            
+    
+    @property
+    def moving(self):
+        return self.build_text('moving', prop=True)
+   
     def stop(self):
         self.build_text('stop', kwargs={})
 
@@ -90,9 +97,9 @@ class XY_Stage:
         return xy_stage        
 
 
-class XY_Agent:
-    def __init__(self):
-        pass    
+#class XY_Agent:
+#    def __init__(self):
+#        pass    
 '''
 if __name__ == '__main__':
     #xy_stage.send('Hello')
