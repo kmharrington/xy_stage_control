@@ -77,6 +77,15 @@ class XY_Stage:
     def moving(self):
         return self.build_text('moving', prop=True)
    
+    def is_enabled(self):    
+        return self.build_text('is_enabled', kwargs={})
+    
+    def enable(self):
+        self.build_text('enable', kwargs={})
+ 
+    def disable(self):
+        self.build_text('disable', kwargs={})
+    
     def stop(self):
         self.build_text('stop', kwargs={})
 
