@@ -20,7 +20,8 @@ class Axis:
         self.eot_cw = pin_list['eot_cw']
 
         self.setup_pins()
-
+        
+        self.hold_enable = False
         self.keep_moving = False
         self.step_position = 0
         
@@ -112,7 +113,14 @@ class Axis:
         
         return self.move_cm(False, abs(distance), velocity)
 
-        
+    def enable(self):
+        self.hold_enable = True
+        GPIO.output(self.ena, GPIO.LOW)
+
+    def disable(self):
+        self.hold_enable = False
+        GPIO.output(self.ena, GPIO.HIGH)
+
     def move_step(self, dir, steps=100, wait=0.005):
         ## direction = False is toward the CCW limit
         ## direction = True is toward the CW limit
@@ -123,7 +131,8 @@ class Axis:
             increment = -1
         else:
             increment = 1
-        GPIO.output( self.ena, GPIO.LOW)
+        if not self.hold_enable:
+            GPIO.output( self.ena, GPIO.LOW)
         GPIO.output(self.dir, dir)
         
         time.sleep(0.25)
@@ -152,7 +161,8 @@ class Axis:
             self.step_position += increment
             steps -= 1
 
-        GPIO.output(self.ena, GPIO.HIGH)
+        if not self.hold_enable:
+            GPIO.output(self.ena, GPIO.HIGH)
         if not self.keep_moving:
             #print('I think I hit a limit with {} steps left'.format(steps))
             return False, steps

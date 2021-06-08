@@ -44,7 +44,21 @@ class XY_Stage(object):
     @property
     def homed(self):
         return self.x_axis.homed and self.y_axis.homed
+    
+    def is_enabled(self):
+        if self.x_axis.hold_enable and self.y_axis.hold_enable:
+            return True
+        return False
 
+    def enable(self):
+        """Holds the motors enabled between moves"""
+        self.x_axis.enable()
+        self.y_axis.enable()
+        
+    def disable(self):
+        self.x_axis.disable()
+        self.y_axis.disable()
+        
     def home(self, max_dist=150):
         '''
         Home both axes. Should probably add some failure checking
