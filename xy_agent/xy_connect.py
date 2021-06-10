@@ -2,7 +2,7 @@ import socket
 import json
 import time
 
-class XY_Stage:
+class XY_Stage(object):
     def __init__(self, ip_address, port, timeout=10):
         self.ip_address = ip_address
         self.port = port
