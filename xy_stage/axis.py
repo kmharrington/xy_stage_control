@@ -62,13 +62,21 @@ class Axis:
         self.lim_cw =  GPIO.input(self.eot_cw) == GPIO.LOW 
         return self.lim_ccw or self.lim_cw
 
-    def home(self, max_dist=150):
-        '''
-        Move axis at 1 cm/s toward the home limit.
-        '''    
-        while not self.homed:
+    def home(self, max_dist=150, reset_pos=True):
+        """Move axis at 1 cm/s toward the home limit.
+        
+        Arguments
+        ----------
+        max_dist : float
+            the maximum number of cm to move for homing
+        reset_pos : bool
+            if true, axis position is reset to zero
+        """    
+        while not self.lim_cw:
             self.move_cm(True, max_dist, velocity=1)
-            
+        if reset_pos:
+            self.step_position = 0
+        self.homed = True
 
     def move_cm(self, dir, distance, velocity=None):
         '''
@@ -146,9 +154,6 @@ class Axis:
                     break
                 elif dir and self.lim_cw:
                     ### true goes to home
-                    self.step_position = 0
-                    self.homed = True
-                    print('Hit CW limit with {} steps left'.format(steps))
                     self.keep_moving = False
                     break
                 #print('LIMIT!')

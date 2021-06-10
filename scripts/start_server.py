@@ -27,9 +27,9 @@ while count < 10:
         server = XY_Server(HOST, PORT, xpins, ypins, STEP_PER_CM)
         break
     except:
+        print('Pausing startup')
         time.sleep(10)
     else:
         pass
-
-
+                    
 server.work()

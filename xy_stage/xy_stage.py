@@ -59,13 +59,13 @@ class XY_Stage(object):
         self.x_axis.disable()
         self.y_axis.disable()
         
-    def home(self, max_dist=150):
+    def home(self, max_dist=150, reset_pos=True):
         '''
         Home both axes. Should probably add some failure checking
         '''
 
-        self.x_axis.home(max_dist)
-        self.y_axis.home(max_dist)
+        self.x_axis.home(max_dist=max_dist, reset_pos=reset_pos)
+        self.y_axis.home(max_dist=max_dist, reset_pos=reset_pos)
 
     def wait(self):
         if self.mv_thrd is None:
