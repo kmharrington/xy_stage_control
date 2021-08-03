@@ -1,5 +1,6 @@
 import RPi.GPIO as GPIO
 import time
+import os
 
 class Axis:
     """
@@ -10,7 +11,7 @@ class Axis:
     self.position and/or self.step position can safely be queried
         while the axis is moving. 
     """
-    def __init__(self, name, pin_list, steps_per_cm):
+    def __init__(self, name, pin_list, steps_per_cm, logfile=None):
         self.name = name
         self.ena = pin_list['ena']
         self.pul = pin_list['pul']
@@ -24,6 +25,10 @@ class Axis:
         self.hold_enable = False
         self.keep_moving = False
         self.step_position = 0
+        self.logfile = logfile
+        if self.logfile is not None and os.path.exists(self.logfile):
+            with open(self.logfile, "r") as pos_file:
+                self.step_position = int(pos_file.read())
         
         self.steps_per_cm = steps_per_cm
         self.max_vel = 1.27 ## cm / s
@@ -165,6 +170,9 @@ class Axis:
             time.sleep(wait)
             self.step_position += increment
             steps -= 1
+            if self.logfile is not None:
+                with open(self.logfile, "w") as pos_file:
+                    pos_file.write(self.step_position)
 
         if not self.hold_enable:
             GPIO.output(self.ena, GPIO.HIGH)

@@ -6,7 +6,8 @@ from threading import Thread
 
 class XY_Stage(object):
     
-    def __init__(self, xpin_list, ypin_list, xsteps_per_cm, ysteps_per_cm=None):
+    def __init__(self, xpin_list, ypin_list, xsteps_per_cm, ysteps_per_cm=None,
+                xlogfile = None, ylogfile=None):
         '''
         Args:
             xpin_list: the pins needed for the X-axis
@@ -14,11 +15,11 @@ class XY_Stage(object):
             xsteps_per_cm: steps needed to move the x stages 1 cm
                 used for y axis as well if only one is defined
         '''
-        self.x_axis = CombinedAxis('X', xpin_list, xsteps_per_cm)
+        self.x_axis = CombinedAxis('X', xpin_list, xsteps_per_cm, xlogfile)
 
         if ysteps_per_cm is None:
             ysteps_per_cm = xsteps_per_cm
-        self.y_axis = Axis('Y', ypin_list, ysteps_per_cm)
+        self.y_axis = Axis('Y', ypin_list, ysteps_per_cm, ylogfile)
         self.mv_thrd = None
         
     

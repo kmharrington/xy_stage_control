@@ -28,6 +28,8 @@ class XY_Server(object):
         self.ypins = ypin_list
         self.steps_per_cm = steps_per_cm
         self.stages = None
+        self.xlog = '/data/logs/xpos.txt'
+        self.ylog = '/data/logs/ypos.txt'
 
     def work(self):
         self.logger.info("Initialize Server")
@@ -68,7 +70,8 @@ class XY_Server(object):
     def init_stages(self):
         if self.stages is not None:
             return 'Stages already Initialized'
-        self.stages = XY_Stage(self.xpins, self.ypins, self.steps_per_cm)
+        self.stages = XY_Stage(self.xpins, self.ypins, self.steps_per_cm,
+                                self.xlog, self.ylog)
         return 'Stages Initialized'
 '''        
 if __name__ == '__main__':
